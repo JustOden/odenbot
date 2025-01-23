@@ -23,7 +23,7 @@ async def on_ready():
 		print(e)
 	else:
 		print(f"Synced {len(synced)} slash command(s)")
-	user_id = os.environ["USER_ID"]
+	user_id = os.environ.get("USER_ID")
 	user = await bot.fetch_user(user_id)
 	await user.send("Online")
 
