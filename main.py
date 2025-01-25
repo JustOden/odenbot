@@ -162,7 +162,8 @@ async def jisho(ctx, *, arg):
 				other_form = f"{word}{reading}"
 				list_.append(other_form)
 			entry+= "\nOther forms\n" + "、".join(list_)
-		data.append(entry)
+
+		data.append(entry[:1015] + " [...]")
 	page_view.data = data
 	await page_view.send(ctx)
 
