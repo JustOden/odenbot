@@ -40,7 +40,7 @@ async def say(interaction: discord.Interaction, arg: str):
 
 @bot.command()
 async def info(ctx):
-    await ctx.send("I am a bot designed by Oden and a work in progress. Do '!help' for list of commands and '!help <command_name>' for more instructions")
+    await ctx.send("I am a bot designed by Oden and a work in progress. Do 'o!help' for list of commands and 'o!help <command_name>' for more instructions")
 
 
 async def load():
