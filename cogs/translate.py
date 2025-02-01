@@ -1,8 +1,7 @@
-import json
 import discord
 from discord.ext import commands
-
 from googletrans import Translator, LANGUAGES
+
 t = Translator()
 
 
