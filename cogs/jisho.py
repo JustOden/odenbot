@@ -74,7 +74,6 @@ class PageView(discord.ui.View):
 
 class Jisho(commands.Cog):
     def __init__(self, bot):
-        super().__init__()
         self.bot = bot
 
     @commands.command()
@@ -128,7 +127,10 @@ class Jisho(commands.Cog):
                     list_.append(other_form)
                 entry+= "\nOther forms\n" + "、".join(list_)
 
-            data.append(entry[:1015] + " [...]")
+            if len(entry) > 1015:
+                entry = entry[:1015] + " [...]"
+                
+            data.append(entry)
         page_view.data = data
         await page_view.send(ctx)
 
