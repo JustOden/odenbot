@@ -1,7 +1,10 @@
 import json
+import requests
+import pprint
 import discord
 from discord.ext import commands
 from jisho_api.word import Word
+from jisho_api.kanji import Kanji
 
 
 class PageView(discord.ui.View):
@@ -75,10 +78,8 @@ class PageView(discord.ui.View):
 class Jisho(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.command()
-    async def jisho(self, ctx, *, arg):
-        page_view = PageView()
+    
+    def word_search(self, arg) -> list:
         request = Word.request(arg).json()
         entries = json.loads(request)
         results = [item for item in entries["data"]]
@@ -129,9 +130,41 @@ class Jisho(commands.Cog):
 
             if len(entry) > 1015:
                 entry = entry[:1015] + " [...]"
-                
+
             data.append(entry)
-        page_view.data = data
+
+        return data
+    
+    def kanji_search(self, arg):
+        results = [requests.get(f"https://kanjiapi.dev/v1/kanji/{i}").json() for i in arg]
+        
+        # results = [json.loads(Kanji.request(i).json()) for i in arg]
+        data = []
+
+        for result in results:
+            entry = ""
+            kanji = result["kanji"]
+            strokes = result["stroke_count"]
+            main_meanings = result["meanings"]
+            kun_readings = result["kun_readings"]
+            on_readings = result["on_readings"]
+            grade = result["grade"]
+            jlpt = result["jlpt"]
+            entry += f"Kanji: {kanji}\nStrokes: {strokes}\nMain meanings: {main_meanings}\nKun-readings: {kun_readings}\nOn-readings: {on_readings}\nGrade: {grade}\nJLPT: {jlpt}"
+            data.append(entry)
+
+        return data
+
+    @commands.command()
+    async def jisho(self, ctx, *, arg):
+        page_view = PageView()
+        page_view.data = self.word_search(arg)
+        await page_view.send(ctx)
+    
+    @commands.command()
+    async def kanji(self, ctx, arg):
+        page_view = PageView()
+        page_view.data = self.kanji_search(arg)
         await page_view.send(ctx)
 
 
