@@ -1,6 +1,4 @@
 import json
-import requests
-import pprint
 import discord
 from discord.ext import commands
 from jisho_api.word import Word
@@ -16,7 +14,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.data[:self.sep])
 
     def create_embed(self, data):
-        embed = discord.Embed(title="Jisho", url="https://jisho.org/", description="This bot uses jisho's api. *[Click here for site](https://jisho.org/)*", colour=discord.Colour.random())
+        embed = discord.Embed(title="Jisho", url="https://jisho.org/", description="This bot uses an api for jisho. *[Click here for site](https://jisho.org/)*", colour=discord.Colour.random())
 
         for item in data:
             embed.add_field(name=f"{self.current_page}/{int(len(self.data) / self.sep)}", value=item, inline=False)
@@ -24,8 +22,7 @@ class PageView(discord.ui.View):
 
     async def update_message(self, data):
         self.update_buttons()
-        msg = await self.message.edit(embed=self.create_embed(data), view=self)
-        # await msg.add_reaction("🔎")
+        await self.message.edit(embed=self.create_embed(data), view=self)
 
     def update_buttons(self):
         if self.current_page == 1:
@@ -92,7 +89,7 @@ class Jisho(commands.Cog):
             fq = "\ncommon word" if result["is_common"] else ""
             jlpt = ", " + (", ".join(result["jlpt"])) if result["jlpt"] and fq else "" or "\n"+(", ".join(result["jlpt"])) if result["jlpt"] else ""
             tags = ", " + (", ".join(result["tags"])) if result["tags"] and (jlpt or fq) else "" or "\n" + (", ".join(result["tags"])) if result["tags"] else ""
-            entry = f"**{word}{reading}**{fq}{jlpt}{tags}\n"
+            entry += f"**{word}{reading}**{fq}{jlpt}{tags}\n"
 
             for index, result2 in enumerate(result["senses"], start=1):	
                 parts_of_speech = "\n"+"***"+(", ".join(result2["parts_of_speech"])) + "***" if result2["parts_of_speech"] else ""
@@ -114,9 +111,9 @@ class Jisho(commands.Cog):
                         url = link["url"]
                         text_url = f"[{text}]({url})"
                         list_.append(text_url)
-                    entry+="\n"
-                    entry+= "*"+("\n".join(list_))+"*"
-                entry+="\n"
+                    entry += "\n"
+                    entry += "*"+("\n".join(list_))+"*"
+                entry += "\n"
 
             if len(result["japanese"]) > 1:
                 list_ = []
@@ -126,7 +123,7 @@ class Jisho(commands.Cog):
                     reading = f"【{dict_['reading']}】" if dict_["word"] else ""
                     other_form = f"{word}{reading}"
                     list_.append(other_form)
-                entry+= "\nOther forms\n" + "、".join(list_)
+                entry += "\nOther forms\n" + "、".join(list_)
 
             if len(entry) > 1015:
                 entry = entry[:1015] + " [...]"
@@ -136,21 +133,20 @@ class Jisho(commands.Cog):
         return data
     
     def kanji_search(self, arg):
-        results = [requests.get(f"https://kanjiapi.dev/v1/kanji/{i}").json() for i in arg]
-        
-        # results = [json.loads(Kanji.request(i).json()) for i in arg]
+        results = [json.loads(Kanji.request(i).json()) for i in arg]
         data = []
 
         for result in results:
             entry = ""
-            kanji = result["kanji"]
-            strokes = result["stroke_count"]
-            main_meanings = result["meanings"]
-            kun_readings = result["kun_readings"]
-            on_readings = result["on_readings"]
-            grade = result["grade"]
-            jlpt = result["jlpt"]
-            entry += f"Kanji: {kanji}\nStrokes: {strokes}\nMain meanings: {main_meanings}\nKun-readings: {kun_readings}\nOn-readings: {on_readings}\nGrade: {grade}\nJLPT: {jlpt}"
+            kanji = result["data"]["kanji"]
+            strokes = result["data"]["strokes"]
+            main_meanings = result["data"]["main_meanings"]
+            kun_readings = result["data"]["main_readings"]["kun"]
+            on_readings = result["data"]["main_readings"]["on"]
+            grade = result["data"]["meta"]["education"]["grade"]
+            jlpt = result["data"]["meta"]["education"]["jlpt"]
+            newspaper_rank = result["data"]["meta"]["education"]["newspaper_rank"]
+            entry += f"Kanji: {kanji}\nStrokes: {strokes}\nMain meanings: {main_meanings}\nKun-readings: {kun_readings}\nOn-readings: {on_readings}\nGrade: {grade}\nJLPT: {jlpt}\nNewspaper rank: {newspaper_rank}"
             data.append(entry)
 
         return data
