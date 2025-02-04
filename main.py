@@ -26,17 +26,6 @@ async def on_ready():
     await user.send("Online")
 
 
-@bot.tree.command()
-async def hello(interaction: discord.Interaction):
-    await interaction.response.send_message(f"Hey {interaction.user.mention}! This is a slash command!", ephemeral=True)
-
-
-@bot.tree.command()
-@app_commands.describe(arg="Thing to say:")
-async def say(interaction: discord.Interaction, arg: str):
-    await interaction.response.send_message(f"{interaction.user.name} said: `{arg}`")
-
-
 @bot.command()
 async def info(ctx):
     await ctx.send("I am a bot designed by Oden and a work in progress. Do 'o!help' for list of commands and 'o!help <command_name>' for more instructions")
