@@ -4,7 +4,6 @@ from discord import app_commands
 from discord.ext import commands
 import asyncio
 from dotenv import load_dotenv
-from jisho_api.word import Word
 from keep_alive import keep_alive
 
 load_dotenv()

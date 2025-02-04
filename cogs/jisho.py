@@ -2,6 +2,8 @@ import json
 import discord
 from discord.ext import commands
 from jisho_api.word import Word
+from jisho_api.kanji import Kanji
+from jisho_api.sentence import Sentence
 
 
 class PageView(discord.ui.View):
@@ -13,7 +15,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.data[:self.sep])
 
     def create_embed(self, data):
-        embed = discord.Embed(title="Jisho", url="https://jisho.org/", description="This bot uses jisho's api. *[Click here for site](https://jisho.org/)*", colour=discord.Colour.random())
+        embed = discord.Embed(title="Jisho", url="https://jisho.org/", description="This bot uses an api for jisho. *[Click here for site](https://jisho.org/)*", colour=discord.Colour.random())
 
         for item in data:
             embed.add_field(name=f"{self.current_page}/{int(len(self.data) / self.sep)}", value=item, inline=False)
@@ -21,8 +23,7 @@ class PageView(discord.ui.View):
 
     async def update_message(self, data):
         self.update_buttons()
-        msg = await self.message.edit(embed=self.create_embed(data), view=self)
-        # await msg.add_reaction("🔎")
+        await self.message.edit(embed=self.create_embed(data), view=self)
 
     def update_buttons(self):
         if self.current_page == 1:
@@ -75,10 +76,8 @@ class PageView(discord.ui.View):
 class Jisho(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.command()
-    async def jisho(self, ctx, *, arg):
-        page_view = PageView()
+    
+    def word_search(self, arg) -> list:
         request = Word.request(arg).json()
         entries = json.loads(request)
         results = [item for item in entries["data"]]
@@ -91,7 +90,7 @@ class Jisho(commands.Cog):
             fq = "\ncommon word" if result["is_common"] else ""
             jlpt = ", " + (", ".join(result["jlpt"])) if result["jlpt"] and fq else "" or "\n"+(", ".join(result["jlpt"])) if result["jlpt"] else ""
             tags = ", " + (", ".join(result["tags"])) if result["tags"] and (jlpt or fq) else "" or "\n" + (", ".join(result["tags"])) if result["tags"] else ""
-            entry = f"**{word}{reading}**{fq}{jlpt}{tags}\n"
+            entry += f"**{word}{reading}**{fq}{jlpt}{tags}\n"
 
             for index, result2 in enumerate(result["senses"], start=1):	
                 parts_of_speech = "\n"+"***"+(", ".join(result2["parts_of_speech"])) + "***" if result2["parts_of_speech"] else ""
@@ -113,9 +112,9 @@ class Jisho(commands.Cog):
                         url = link["url"]
                         text_url = f"[{text}]({url})"
                         list_.append(text_url)
-                    entry+="\n"
-                    entry+= "*"+("\n".join(list_))+"*"
-                entry+="\n"
+                    entry += "\n"
+                    entry += "*"+("\n".join(list_))+"*"
+                entry += "\n"
 
             if len(result["japanese"]) > 1:
                 list_ = []
@@ -125,13 +124,68 @@ class Jisho(commands.Cog):
                     reading = f"【{dict_['reading']}】" if dict_["word"] else ""
                     other_form = f"{word}{reading}"
                     list_.append(other_form)
-                entry+= "\nOther forms\n" + "、".join(list_)
+                entry += "\nOther forms\n" + "、".join(list_)
 
             if len(entry) > 1015:
                 entry = entry[:1015] + " [...]"
-                
+
             data.append(entry)
-        page_view.data = data
+
+        return data
+    
+    def kanji_search(self, arg):
+        results = [json.loads(Kanji.request(i).json()) for i in arg]
+        data = []
+
+        for result in results:
+            entry = ""
+            kanji = result["data"]["kanji"]
+            strokes = result["data"]["strokes"]
+            main_meanings = result["data"]["main_meanings"]
+            kun_readings = result["data"]["main_readings"]["kun"]
+            on_readings = result["data"]["main_readings"]["on"]
+            grade = result["data"]["meta"]["education"]["grade"]
+            jlpt = result["data"]["meta"]["education"]["jlpt"]
+            newspaper_rank = result["data"]["meta"]["education"]["newspaper_rank"]
+            entry += f"Kanji: {kanji}\nStrokes: {strokes}\nMain meanings: {main_meanings}\nKun-readings: {kun_readings}\nOn-readings: {on_readings}\nGrade: {grade}\nJLPT: {jlpt}\nNewspaper rank: {newspaper_rank}"
+            data.append(entry)
+
+        return data
+    
+    def example_search(self, arg):
+        request = Sentence.request(arg).json()
+        results = json.loads(request)
+        data = []
+        entry = ""
+
+        for index, result in enumerate(results["data"], start=1):
+            japanese = result["japanese"]
+            en_translation = result["en_translation"]
+            entry += f"{index}. {japanese}\n{en_translation}\n\n"
+
+        if len(entry) > 1015:
+            entry = entry[:1015]  + " [...]"
+
+        data.append(entry)
+
+        return data
+
+    @commands.command()
+    async def jisho(self, ctx, *, arg):
+        page_view = PageView()
+        page_view.data = self.word_search(arg)
+        await page_view.send(ctx)
+    
+    @commands.command()
+    async def kanji(self, ctx, *, arg):
+        page_view = PageView()
+        page_view.data = self.kanji_search(arg)
+        await page_view.send(ctx)
+    
+    @commands.command()
+    async def examples(self, ctx, *, arg):
+        page_view = PageView()
+        page_view.data = self.example_search(arg)
         await page_view.send(ctx)
 
 
