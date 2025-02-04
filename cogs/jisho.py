@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from jisho_api.word import Word
 from jisho_api.kanji import Kanji
+from jisho_api.sentence import Sentence
 
 
 class PageView(discord.ui.View):
@@ -150,6 +151,24 @@ class Jisho(commands.Cog):
             data.append(entry)
 
         return data
+    
+    def example_search(self, arg):
+        request = Sentence.request(arg).json()
+        results = json.loads(request)
+        data = []
+        entry = ""
+
+        for index, result in enumerate(results["data"], start=1):
+            japanese = result["japanese"]
+            en_translation = result["en_translation"]
+            entry += f"{index}. {japanese}\n{en_translation}\n\n"
+
+        if len(entry) > 1015:
+            entry = entry[:1015]  + " [...]"
+
+        data.append(entry)
+
+        return data
 
     @commands.command()
     async def jisho(self, ctx, *, arg):
@@ -158,9 +177,15 @@ class Jisho(commands.Cog):
         await page_view.send(ctx)
     
     @commands.command()
-    async def kanji(self, ctx, arg):
+    async def kanji(self, ctx, *, arg):
         page_view = PageView()
         page_view.data = self.kanji_search(arg)
+        await page_view.send(ctx)
+    
+    @commands.command()
+    async def examples(self, ctx, *, arg):
+        page_view = PageView()
+        page_view.data = self.example_search(arg)
         await page_view.send(ctx)
 
 
