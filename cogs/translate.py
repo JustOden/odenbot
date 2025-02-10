@@ -123,7 +123,7 @@ class Translate(commands.Cog):
 
     Using any KEY from above, specify a <from> or <to> language. One or both keys can be implied.
 
-    !translate <from>:<to><message>
+    o!translate <from>:<to><message>
     Example: o!translate ja:en ありがとうございます
     Output: Thank you
 
