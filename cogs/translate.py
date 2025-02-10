@@ -148,7 +148,7 @@ class Translate(commands.Cog):
             from_ = keys[0] if keys[0] in LANGUAGES else t.detect(msg).lang
             to = keys[1] if keys[1] in LANGUAGES else default_lang
         else:
-            await ctx.reply("Do `!help translate` for instructions")
+            await ctx.reply("Do `o!help translate` for instructions")
             return
 
         if msg:
