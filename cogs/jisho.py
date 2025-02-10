@@ -18,7 +18,7 @@ class PageView(discord.ui.View):
         embed = discord.Embed(title="Jisho", url="https://jisho.org/", description="This bot uses an api for jisho. *[Click here for site](https://jisho.org/)*", colour=discord.Colour.random())
 
         for item in data:
-            embed.add_field(name=f"{self.current_page}/{int(len(self.data) / self.sep)}", value=item, inline=False)
+            embed.add_field(name=f"Page {self.current_page} of {int(len(self.data) / self.sep)}", value=item, inline=False)
         return embed
 
     async def update_message(self, data):
