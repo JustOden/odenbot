@@ -4,6 +4,7 @@ from discord.ext import commands
 from jisho_api.word import Word
 from jisho_api.kanji import Kanji
 from jisho_api.sentence import Sentence
+from jisho_api.tokenize import Tokens
 
 
 class PageView(discord.ui.View):
@@ -124,7 +125,6 @@ class Jisho(commands.Cog):
 
             if len(result["japanese"]) > 1:
                 list_ = []
-
                 for dict_ in result["japanese"][1:]:
                     word = _word if (_word:=dict_["word"]) else dict_["reading"]
                     reading = f"【{dict_['reading']}】" if dict_["word"] else ""
@@ -154,7 +154,6 @@ class Jisho(commands.Cog):
             newspaper_rank = result["data"]["meta"]["education"]["newspaper_rank"]
             entry += f"Kanji: {kanji}\nStrokes: {strokes}\nMain meanings: {main_meanings}\nKun-readings: {kun_readings}\nOn-readings: {on_readings}\nGrade: {grade}\nJLPT: {jlpt}\nNewspaper rank: {newspaper_rank}"
             data.append(entry)
-
         return data
     
     def example_search(self, arg):
@@ -172,7 +171,16 @@ class Jisho(commands.Cog):
             entry = entry[:1015]  + " [...]"
 
         data.append(entry)
-
+        return data
+    
+    def token_search(self, arg):
+        request = Tokens.request(arg).json()
+        results = json.loads(request)
+        data = []
+        entry = ""
+        for token in results["data"]:
+            entry += f"{token['token']} {token['pos_tag']}\n"
+        data.append(entry)
         return data
 
     @commands.command()
@@ -191,6 +199,12 @@ class Jisho(commands.Cog):
     async def examples(self, ctx, *, arg):
         page_view = PageView()
         page_view.data = self.example_search(arg)
+        await page_view.send(ctx)
+    
+    @commands.command()
+    async def tokenize(self, ctx, *, arg):
+        page_view = PageView()
+        page_view.data = self.token_search(arg)
         await page_view.send(ctx)
 
 
