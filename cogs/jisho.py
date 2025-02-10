@@ -78,49 +78,55 @@ class Jisho(commands.Cog):
         self.bot = bot
     
     def word_search(self, arg) -> list:
+        URL = "https://jisho.org/search/"
         request = Word.request(arg).json()
         entries = json.loads(request)
         results = [item for item in entries["data"]]
         data = []
 
+        add_c = lambda s: ", " + s
+        add_nl = lambda s: "\n" + s
+        join_c = lambda s: ", ".join(s)
+        bold_i = lambda s: "***" + s + "***"
+        add_i = lambda s: "*" + s + "*"
+
         for result in results:
             entry = ""
-            word = result["japanese"][0]["word"] if result["japanese"][0]["word"] else result["japanese"][0]["reading"]
-            reading = f"【{result['japanese'][0]['reading']}】" if result["japanese"][0]["word"] and result["japanese"][0]["reading"] else ""
+            word = _word if (_word:=result["japanese"][0]["word"]) else result["japanese"][0]["reading"]
+            reading = f"【{_reading}】" if word and (_reading:=result["japanese"][0]["reading"]) else ""
             fq = "\ncommon word" if result["is_common"] else ""
-            jlpt = ", " + (", ".join(result["jlpt"])) if result["jlpt"] and fq else "" or "\n"+(", ".join(result["jlpt"])) if result["jlpt"] else ""
-            tags = ", " + (", ".join(result["tags"])) if result["tags"] and (jlpt or fq) else "" or "\n" + (", ".join(result["tags"])) if result["tags"] else ""
+            jlpt = add_c(join_c(_jlpt)) if (_jlpt:=result["jlpt"]) and fq else add_nl(join_c(_jlpt)) if _jlpt else ""
+            tags = add_c(join_c(_tags)) if (_tags:=result["tags"]) and (jlpt or fq) else add_nl(join_c(_tags)) if _tags else ""
             entry += f"**{word}{reading}**{fq}{jlpt}{tags}\n"
 
-            for index, result2 in enumerate(result["senses"], start=1):	
-                parts_of_speech = "\n"+"***"+(", ".join(result2["parts_of_speech"])) + "***" if result2["parts_of_speech"] else ""
-                links = result2["links"] if result2["links"] else ""
-                english_definitions = ', '.join(result2["english_definitions"])
-                tags = "\n" + (", ".join(result2["tags"])) if result2["tags"] else ""
-                restrictions = ", Only applies to " + (", ".join(result2["restrictions"])) if result2["restrictions"] and tags else "" or "\nOnly applies to " + ", ".join(result2["restrictions"]) if result2["restrictions"] else ""
-                see_also = "".join(result2["see_also"])
-                see_also_link = "https://jisho.org/search/" + ("%20".join(see_also.split())) if " " in see_also else "https://jisho.org/search/" + see_also
-                see_also = f", *see also [{see_also}]({see_also_link})*" if result2["see_also"] and (tags or restrictions) else "" or f"\n*see also [{see_also}]({see_also_link})*" if result2["see_also"] else ""
-                info = ", "+(", ".join(result2["info"])) if result2["info"] and (tags or restrictions or see_also) else "" or ", ".join(result2["info"]) if result2["info"] else ""
+            for index, result2 in enumerate(result["senses"], start=1):
+                parts_of_speech = add_nl(bold_i(join_c(_parts_of_speech))) if (_parts_of_speech:=result2["parts_of_speech"]) else ""
+                links = _links if (_links:=result2["links"]) else ""
+                english_definitions = join_c(result2["english_definitions"])
+                tags = add_nl(join_c(_tags)) if (_tags:=result2["tags"]) else ""
+                restrictions = add_c("Only applies to " + join_c(_restrictions)) if (_restrictions:=result2["restrictions"]) and tags else add_nl("Only applies to " + join_c(_restrictions)) if _restrictions else ""
+                _see_also = "".join(result2["see_also"])
+                see_also_link = URL + ("%20".join(_see_also.split())) if " " in _see_also else URL + _see_also
+                see_also = f", *see also [{_see_also}]({see_also_link})*" if _see_also and (tags or restrictions) else f"\n*see also [{_see_also}]({see_also_link})*" if _see_also else ""
+                info = add_c(join_c(_info)) if (_info:=result2["info"]) and (tags or restrictions or see_also) else join_c(_info) if _info else ""
                 entry += f"{parts_of_speech}\n{index}. {english_definitions}{tags}{restrictions}{see_also}{info}"
 
                 if links:
                     list_ = []
-
                     for link in links:
                         text = link["text"]
                         url = link["url"]
                         text_url = f"[{text}]({url})"
                         list_.append(text_url)
                     entry += "\n"
-                    entry += "*"+("\n".join(list_))+"*"
+                    entry += add_i("\n".join(list_))
                 entry += "\n"
 
             if len(result["japanese"]) > 1:
                 list_ = []
 
                 for dict_ in result["japanese"][1:]:
-                    word = dict_["word"] if dict_["word"] else dict_["reading"]
+                    word = _word if (_word:=dict_["word"]) else dict_["reading"]
                     reading = f"【{dict_['reading']}】" if dict_["word"] else ""
                     other_form = f"{word}{reading}"
                     list_.append(other_form)
@@ -130,7 +136,6 @@ class Jisho(commands.Cog):
                 entry = entry[:1015] + " [...]"
 
             data.append(entry)
-
         return data
     
     def kanji_search(self, arg):
