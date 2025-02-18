@@ -78,7 +78,7 @@ class Jisho(commands.Cog):
         self.bot = bot
     
     @staticmethod
-    def word_search(arg) -> list:
+    def word_search(arg: str) -> list:
         URL = "https://jisho.org/search/"
         request = Word.request(arg).json()
         entries = json.loads(request)
@@ -92,42 +92,30 @@ class Jisho(commands.Cog):
 
         for result in results:
             entry = ""
-
             word = _word if (_word:=result["japanese"][0]["word"]) else result["japanese"][0]["reading"]
-
             reading = _reading if word and (_reading:=result["japanese"][0]["reading"]) else ""
 
             fq = "common word" if result["is_common"] else ""
-
             jlpt = join_c(_jlpt) if (_jlpt:=result["jlpt"]) else  ""
-
             tags = join_c(_tags) if (_tags:=result["tags"]) else ""
             
             joined = join_c([i for i in (fq, jlpt, tags) if i])
-
             entry += f"**{word}【{reading}】**\n{joined}\n"
 
             for index, senses in enumerate(result["senses"], start=1):
                 parts_of_speech = add_nl(bold_i(join_c(_parts_of_speech))) if (_parts_of_speech:=senses["parts_of_speech"]) else ""
-
                 links = _links if (_links:=senses["links"]) else ""
 
                 english_definitions = join_c(senses["english_definitions"])
-
                 tags = join_c(_tags) if (_tags:=senses["tags"]) else ""
-
                 restrictions = "Only applies to " + join_c(_restrictions) if (_restrictions:=senses["restrictions"]) else ""
 
                 _see_also = "".join(senses["see_also"])
-
                 see_also_link = URL + ("%20".join(_see_also.split())) if " " in _see_also else URL + _see_also
-
                 see_also = f"*see also [{_see_also}]({see_also_link})*" if _see_also else ""
 
                 info = join_c(_info) if (_info:=senses["info"]) else ""
-
                 joined = add_nl(_joined) if (_joined:=join_c([i for i in (tags, restrictions, see_also, info) if i])) else ""
-
                 entry += f"{parts_of_speech}\n{index}. {english_definitions}{joined}"
 
                 if links:
@@ -161,7 +149,8 @@ class Jisho(commands.Cog):
             
         return data
 
-    def kanji_search(self, arg):
+    @staticmethod
+    def kanji_search(arg: str) -> list:
         results = [json.loads(Kanji.request(i).json()) for i in arg]
         data = []
 
@@ -183,7 +172,8 @@ class Jisho(commands.Cog):
             
         return data
     
-    def example_search(self, arg):
+    @staticmethod
+    def example_search(arg: str) -> list:
         request = Sentence.request(arg).json()
         results = json.loads(request)
         data = []
@@ -200,7 +190,8 @@ class Jisho(commands.Cog):
         data.append(entry)
         return data
     
-    def token_search(self, arg):
+    @staticmethod
+    def token_search(arg: str) -> list:
         request = Tokens.request(arg).json()
         results = json.loads(request)
         data = []
