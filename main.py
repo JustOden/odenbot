@@ -9,7 +9,7 @@ from keep_alive import keep_alive
 load_dotenv()
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="o!", intents=intents)
+bot = commands.Bot(command_prefix=("o!", "O!"), intents=intents)
 
 
 @bot.event
@@ -43,5 +43,5 @@ async def main():
         TOKEN = os.getenv("DISCORD_TOKEN")
         await bot.start(TOKEN)
 
-keep_alive()
+# keep_alive()
 asyncio.run(main())
