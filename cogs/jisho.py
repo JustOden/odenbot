@@ -10,8 +10,8 @@ URL = "https://jisho.org/search/"
 
 
 class PageView(discord.ui.View):
-    current_page : 1
-    sep : 1
+    current_page = 1
+    sep = 1
     
     async def interaction_check(self, interaction):
         if interaction.user != self.ctx.author:
@@ -19,8 +19,9 @@ class PageView(discord.ui.View):
             return False
         return True
     
-    # async def on_timeout(self):
-    #     await self.ctx.send(f"Interaction for {self.invoked_command} done by {self.ctx.author} has timed out.", ephemeral=True)
+    async def on_timeout(self):
+        self.clear_items()
+        await self.ctx.send(f"Command done by {self.ctx.author} has timed out.")
 
     async def send(self, ctx, arg):
         self.ctx = ctx
