@@ -10,7 +10,7 @@ URL = "https://jisho.org/search/"
 
 
 class PageView(discord.ui.View):
-    def __init__(self, ctx, arg, *, timeout = 180):
+    def __init__(self, ctx: commands.context, arg: str, data: dict, *, timeout: int = 180):
         super().__init__(timeout=timeout)
 
         self.current_page = 1
@@ -18,25 +18,26 @@ class PageView(discord.ui.View):
 
         self.ctx = ctx
         self.arg = arg
+        self.data = data
+
+        self.key = list(self.data)
+        self.value = list(self.data.values())
         self.invoked_command = ctx.invoked_with
     
-    async def interaction_check(self, interaction):
+    async def interaction_check(self, interaction: discord.interactions) -> bool:
         if interaction.user != self.ctx.author:
             await interaction.response.send_message("Only the author of this command can perform this action.", ephemeral=True)
             return False
         return True
     
-    async def on_timeout(self):
+    async def on_timeout(self) -> None:
         await self.message.edit(view=None)
 
-    async def send(self):
-        self.key = list(self.data)
-        self.value = list(self.data.values())
-
+    async def send(self) -> None:
         self.message = await self.ctx.send(view=self)
         await self.update_message(self.value[:self.sep])
 
-    def create_embed(self, data):
+    def create_embed(self, data: list) -> discord.Embed:
         url = URL+("%20".join(self.arg)) if " " in URL else URL + self.arg
         embed = discord.Embed(title=self.arg, url=url, colour=discord.Colour.random())
 
@@ -51,11 +52,11 @@ class PageView(discord.ui.View):
 
         return embed
 
-    async def update_message(self, data):
+    async def update_message(self, data: list) -> None:
         self.update_buttons()
         await self.message.edit(embed=self.create_embed(data), view=self)
 
-    def update_buttons(self):
+    def update_buttons(self) -> None:
         if self.current_page == 1:
             self.first_page_button.disabled = True
             self.prev_button.disabled = True
@@ -86,14 +87,14 @@ class PageView(discord.ui.View):
             self.examples_button.disabled = False
 
     @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.primary)
-    async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.current_page = 1
         until_item = self.current_page * self.sep
         await self.update_message(self.value[:until_item])
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.primary)
-    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.current_page -= 1
         until_item = self.current_page * self.sep
@@ -101,7 +102,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.value[from_item:until_item])
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.primary)
-    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.current_page += 1
         until_item = self.current_page * self.sep
@@ -109,7 +110,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.value[from_item:until_item])
 
     @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.primary)
-    async def last_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def last_page_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.current_page = int(len(self.value) / self.sep)
         until_item = self.current_page * self.sep
@@ -117,7 +118,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.value[from_item:])
 
     @discord.ui.button(label="言葉", style=discord.ButtonStyle.primary)
-    async def jisho_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def jisho_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.invoked_command = "j"
         self.arg = self.key[self.current_page - 1]
@@ -128,7 +129,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.value[:self.sep])
 
     @discord.ui.button(label="漢字", style=discord.ButtonStyle.primary)
-    async def kanji_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def kanji_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.invoked_command = "k"
         self.arg = self.key[self.current_page - 1]
@@ -139,7 +140,7 @@ class PageView(discord.ui.View):
         await self.update_message(self.value[:self.sep])
 
     @discord.ui.button(label="例文", style=discord.ButtonStyle.primary)
-    async def examples_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def examples_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         self.invoked_command = "e"
         self.arg = self.key[self.current_page - 1]
@@ -282,27 +283,23 @@ class Jisho(commands.Cog):
         return data
 
     @commands.command(aliases=["j", "J"])
-    async def jisho(self, ctx, *, arg):
-        page_view = PageView(ctx, arg)
-        page_view.data = self.word_search(arg)
+    async def jisho(self, ctx: commands.context, *, arg: str) -> None:
+        page_view = PageView(ctx=ctx, arg=arg, data=self.word_search(arg))
         await page_view.send()
     
     @commands.command(aliases=["k", "K"])
-    async def kanji(self, ctx, *, arg):
-        page_view = PageView(ctx, arg)
-        page_view.data = self.kanji_search(arg)
+    async def kanji(self, ctx: commands.context, *, arg: str) -> None:
+        page_view = PageView(ctx=ctx, arg=arg, data=self.kanji_search(arg))
         await page_view.send()
     
     @commands.command(aliases=["e", "E"])
-    async def examples(self, ctx, *, arg):
-        page_view = PageView(ctx, arg)
-        page_view.data = self.examples_search(arg)
+    async def examples(self, ctx: commands.context, *, arg: str) -> None:
+        page_view = PageView(ctx=ctx, arg=arg, data=self.examples_search(arg))
         await page_view.send()
     
     @commands.command(aliases=["tn"])
-    async def tokenize(self, ctx, *, arg):
-        page_view = PageView(ctx, arg)
-        page_view.data = self.token_search(arg)
+    async def tokenize(self, ctx: commands.context, *, arg: str) -> None:
+        page_view = PageView(ctx=ctx, arg=arg, data=self.token_search(arg))
         await page_view.send()
 
 
