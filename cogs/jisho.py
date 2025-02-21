@@ -10,8 +10,15 @@ URL = "https://jisho.org/search/"
 
 
 class PageView(discord.ui.View):
-    current_page = 1
-    sep = 1
+    def __init__(self, ctx, arg, *, timeout = 180):
+        super().__init__(timeout=timeout)
+
+        self.current_page = 1
+        self.sep = 1
+
+        self.ctx = ctx
+        self.arg = arg
+        self.invoked_command = ctx.invoked_with
     
     async def interaction_check(self, interaction):
         if interaction.user != self.ctx.author:
@@ -20,23 +27,22 @@ class PageView(discord.ui.View):
         return True
     
     async def on_timeout(self):
-        self.clear_items()
-        await self.ctx.send(f"Command done by {self.ctx.author} has timed out.")
+        await self.message.edit(view=None)
 
-    async def send(self, ctx, arg):
-        self.ctx = ctx
-        self.arg = arg
-        self.invoked_command = ctx.invoked_with
-        self.message = await ctx.send(view=self)
-        await self.update_message(self.data[:self.sep])
+    async def send(self):
+        self.key = list(self.data)
+        self.value = list(self.data.values())
+
+        self.message = await self.ctx.send(view=self)
+        await self.update_message(self.value[:self.sep])
 
     def create_embed(self, data):
         url = URL+("%20".join(self.arg)) if " " in URL else URL + self.arg
         embed = discord.Embed(title=self.arg, url=url, colour=discord.Colour.random())
 
-        if len(self.data) > 1:
+        if len(self.value) > 1:
             for entry in data:
-                embed.add_field(name=f"Page {self.current_page} of {int(len(self.data) / self.sep)}", value=entry, inline=False)
+                embed.add_field(name=f"Page {self.current_page} of {int(len(self.value) / self.sep)}", value=entry, inline=False)
                 embed.title = self.arg
         else:
             for entry in data:
@@ -57,7 +63,7 @@ class PageView(discord.ui.View):
             self.first_page_button.disabled = False
             self.prev_button.disabled = False
 
-        if self.current_page == int(len(self.data) / self.sep):
+        if self.current_page == int(len(self.value) / self.sep):
             self.next_button.disabled = True
             self.last_page_button.disabled = True
         else:
@@ -84,7 +90,7 @@ class PageView(discord.ui.View):
         await interaction.response.defer()
         self.current_page = 1
         until_item = self.current_page * self.sep
-        await self.update_message(self.data[:until_item])
+        await self.update_message(self.value[:until_item])
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.primary)
     async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -92,7 +98,7 @@ class PageView(discord.ui.View):
         self.current_page -= 1
         until_item = self.current_page * self.sep
         from_item = until_item - self.sep
-        await self.update_message(self.data[from_item:until_item])
+        await self.update_message(self.value[from_item:until_item])
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.primary)
     async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -100,39 +106,48 @@ class PageView(discord.ui.View):
         self.current_page += 1
         until_item = self.current_page * self.sep
         from_item = until_item - self.sep
-        await self.update_message(self.data[from_item:until_item])
+        await self.update_message(self.value[from_item:until_item])
 
     @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.primary)
     async def last_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        self.current_page = int(len(self.data) / self.sep)
+        self.current_page = int(len(self.value) / self.sep)
         until_item = self.current_page * self.sep
         from_item = until_item - self.sep
-        await self.update_message(self.data[from_item:])
+        await self.update_message(self.value[from_item:])
 
     @discord.ui.button(label="言葉", style=discord.ButtonStyle.primary)
     async def jisho_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         self.invoked_command = "j"
+        self.arg = self.key[self.current_page - 1]
         self.data = Jisho.word_search(self.arg)
+        self.key = list(self.data)
+        self.value = list(self.data.values())
         self.current_page = 1
-        await self.update_message(self.data[:self.sep])
+        await self.update_message(self.value[:self.sep])
 
     @discord.ui.button(label="漢字", style=discord.ButtonStyle.primary)
     async def kanji_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         self.invoked_command = "k"
+        self.arg = self.key[self.current_page - 1]
         self.data = Jisho.kanji_search(self.arg)
+        self.key = list(self.data)
+        self.value = list(self.data.values())
         self.current_page = 1
-        await self.update_message(self.data[:self.sep])
+        await self.update_message(self.value[:self.sep])
 
     @discord.ui.button(label="例文", style=discord.ButtonStyle.primary)
     async def examples_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         self.invoked_command = "e"
+        self.arg = self.key[self.current_page - 1]
         self.data = Jisho.examples_search(self.arg)
+        self.key = list(self.data)
+        self.value = list(self.data.values())
         self.current_page = 1
-        await self.update_message(self.data[:self.sep])
+        await self.update_message(self.value[:self.sep])
 
 
 class Jisho(commands.Cog):
@@ -140,11 +155,11 @@ class Jisho(commands.Cog):
         self.bot = bot
 
     @staticmethod
-    def word_search(arg: str) -> list:
+    def word_search(arg: str) -> dict:
         request = Word.request(arg).json()
         entries = json.loads(request)
         results = [item for item in entries["data"]]
-        data = []
+        data = {}
         
         add_nl = lambda s: "\n" + s
         join_c = lambda s: ", ".join(s)
@@ -196,9 +211,9 @@ class Jisho(commands.Cog):
                 list_ = []
                 
                 for dict_ in result["japanese"][1:]:
-                    word = _word if (_word:=dict_["word"]) else dict_["reading"]
-                    reading = f"【{dict_['reading']}】" if dict_["word"] else ""
-                    other_form = f"{word}{reading}"
+                    otherword = _word if (_word:=dict_["word"]) else dict_["reading"]
+                    otherreading = f"【{dict_['reading']}】" if dict_["word"] else ""
+                    other_form = f"{otherword}{otherreading}"
                     list_.append(other_form)
                     
                 entry += "\nOther forms\n" + "、".join(list_)
@@ -206,14 +221,14 @@ class Jisho(commands.Cog):
             if len(entry) > 1015:
                 entry = entry[:1015] + " [...]"
 
-            data.append(entry)
+            data[word] = entry
             
         return data
 
     @staticmethod
-    def kanji_search(arg: str) -> list:
+    def kanji_search(arg: str) -> dict:
         results = [json.loads(Kanji.request(i).json()) for i in arg]
-        data = []
+        data = {}
 
         for result in results:
             entry = ""
@@ -229,15 +244,15 @@ class Jisho(commands.Cog):
             newspaper_rank = result["data"]["meta"]["education"]["newspaper_rank"]
             
             entry += f"Kanji: {kanji}\nStrokes: {strokes}\nMain meanings: {main_meanings}\nKun-readings: {kun_readings}\nOn-readings: {on_readings}\nGrade: {grade}\nJLPT: {jlpt}\nNewspaper rank: {newspaper_rank}"
-            data.append(entry)
+            data[kanji] = entry
             
         return data
     
     @staticmethod
-    def examples_search(arg: str) -> list:
+    def examples_search(arg: str) -> dict:
         request = Sentence.request(arg).json()
         results = json.loads(request)
-        data = []
+        data = {}
         entry = ""
 
         for index, result in enumerate(results["data"], start=1):
@@ -248,48 +263,47 @@ class Jisho(commands.Cog):
         if len(entry) > 1015:
             entry = entry[:1015]  + " [...]"
 
-        data.append(entry)
+        data[arg] = entry
 
         return data
     
     @staticmethod
-    def token_search(arg: str) -> list:
+    def token_search(arg: str) -> dict:
         request = Tokens.request(arg).json()
         results = json.loads(request)
-        data = []
+        data = {}
         entry = ""
         
         for token in results["data"]:
             entry += f"{token['token']} {token['pos_tag']}\n"
             
-        data.append(entry)
+        data[arg] = entry
         
         return data
 
     @commands.command(aliases=["j", "J"])
     async def jisho(self, ctx, *, arg):
-        page_view = PageView()
+        page_view = PageView(ctx, arg)
         page_view.data = self.word_search(arg)
-        await page_view.send(ctx, arg)
+        await page_view.send()
     
     @commands.command(aliases=["k", "K"])
     async def kanji(self, ctx, *, arg):
-        page_view = PageView()
+        page_view = PageView(ctx, arg)
         page_view.data = self.kanji_search(arg)
-        await page_view.send(ctx, arg)
+        await page_view.send()
     
     @commands.command(aliases=["e", "E"])
     async def examples(self, ctx, *, arg):
-        page_view = PageView()
+        page_view = PageView(ctx, arg)
         page_view.data = self.examples_search(arg)
-        await page_view.send(ctx, arg)
+        await page_view.send()
     
     @commands.command(aliases=["tn"])
     async def tokenize(self, ctx, *, arg):
-        page_view = PageView()
+        page_view = PageView(ctx, arg)
         page_view.data = self.token_search(arg)
-        await page_view.send(ctx, arg)
-        print("Success?")
+        await page_view.send()
 
 
 async def setup(bot):
