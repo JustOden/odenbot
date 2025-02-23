@@ -11,25 +11,27 @@ URL = "https://jisho.org/search/"
 
 
 def test():
-    import pprint
-
     text = input("Enter a word/phrase to search: ")
 
-    print("--------------------------------------")
-    print(f"Word search for {text}:")
-    pprint.pp(Jisho.word_search(text))
+    print(f"<------------Word search for for {text}------------>")
+    for word in Jisho.word_search(text):
+        print(word)
+        print("--end--")
 
-    print("--------------------------------------")
-    print(f"Examples search {text}:")
-    pprint.pp(Jisho.examples_search(text))
+    print(f"<------------Examples search for {text}------------>")
+    for example in Jisho.examples_search(text):
+        print(example)
+        print("--end--")
 
-    print("--------------------------------------")
-    print(f"Kanji search {text}:")
-    pprint.pp(Jisho.kanji_search(text))
+    print(f"<------------Kanji search for {text}------------>")
+    for kanji in Jisho.kanji_search(text):
+        print(kanji)
+        print("--end--")
 
-    print("--------------------------------------")
-    print(f"Token search {text}:")
-    pprint.pp(Jisho.token_search(text))
+    print(f"<------------Token search for {text}------------>")
+    for token in Jisho.token_search(text):
+        print(token)
+        print("--end--")
 
 
 class PageView(discord.ui.View):
