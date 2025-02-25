@@ -141,12 +141,14 @@ class Translate(commands.Cog):
             msg = args[len(all_words[0])+1:] if first_key or second_key else args
             from_ = first_key if first_key else t.detect(msg).lang
             to = second_key if second_key else default_lang
+
         elif str(ctx.message.type) == "MessageType.reply":
             msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
             msg = msg.content
             keys = args.split(seperator) if args and seperator in args else (None, None)
             from_ = keys[0] if keys[0] in LANGUAGES else t.detect(msg).lang
             to = keys[1] if keys[1] in LANGUAGES else default_lang
+            
         else:
             await ctx.reply("Do `o!help translate` for instructions")
             return
