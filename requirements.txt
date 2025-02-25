@@ -3,5 +3,4 @@ discord.py==2.4.0
 Flask==3.1.0
 googletrans==3.1.0a0
 python-dotenv==1.0.1
-requests==2.32.3
-git+https://github.com/pedroallenrevez/jisho-api.git
+git+https://github.com/JustOden/jisho-api.git

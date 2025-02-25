@@ -1,5 +1,7 @@
+import sys
 import json
 import re
+import traceback
 import discord
 from discord.ext import commands
 from jisho_api.word import Word
@@ -11,27 +13,14 @@ URL = "https://jisho.org/search/"
 
 
 def test():
-    text = input("Enter a word/phrase to search: ")
-
-    print(f"<------------Word search for for {text}------------>")
-    for word in Jisho.word_search(text):
-        print(word)
-        print("--end--")
-
-    print(f"<------------Examples search for {text}------------>")
-    for example in Jisho.examples_search(text):
-        print(example)
-        print("--end--")
-
-    print(f"<------------Kanji search for {text}------------>")
-    for kanji in Jisho.kanji_search(text):
-        print(kanji)
-        print("--end--")
-
-    print(f"<------------Token search for {text}------------>")
-    for token in Jisho.token_search(text):
-        print(token)
-        print("--end--")
+    # test to display how the text will be formatted on discord
+    all_cmds = ("word", "kanji", "examples", "token")
+    while (cmd:=input(f"Enter command option from {all_cmds}: ").lower()) in all_cmds:
+        while (text:=input(f"Enter {cmd} to search for or (b: back): ").lower()) != "b":
+            print(f"<------------{cmd.capitalize()} search for {text}------------>")
+            for result in getattr(Jisho, f"{cmd.lower()}_search")(text):
+                print(result)
+                print("--end--")
 
 
 class PageView(discord.ui.View):
@@ -56,12 +45,27 @@ class PageView(discord.ui.View):
     async def on_timeout(self) -> None:
         await self.message.edit(view=None)
 
+    async def on_command_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.MemberNotFound):
+            await ctx.send("I could not find member '{error.argument}'. Please try again", ephemeral=True)
+
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"'{error.param.name}' is a required argument.", ephemeral=True)
+
+        else:
+            print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+
     async def send(self) -> None:
-        self.message = await self.ctx.send(view=self)
-        await self.update_message(self.data[:self.sep])
+        # try block to debug code
+        try:
+            self.message = await self.ctx.send(view=self)
+            await self.update_message(self.data[:self.sep])
+        except Exception as e:
+            print(e)
 
     def create_embed(self, data: list) -> discord.Embed:
-        url = URL+("%20".join(self.arg)) if " " in URL else URL + self.arg
+        url = URL + ("%20".join(self.arg.split()))
         embed = discord.Embed(title=self.arg, url=url, colour=discord.Colour.random())
 
         if len(self.data) > 1:
@@ -219,7 +223,7 @@ class Jisho(commands.Cog):
                 restrictions = "Only applies to " + join_c(_restrictions) if (_restrictions:=senses["restrictions"]) else ""
 
                 _see_also = "".join(senses["see_also"])
-                see_also_link = URL + ("%20".join(_see_also.split())) if " " in _see_also else URL + _see_also
+                see_also_link = URL + ("%20".join(_see_also.split()))
                 see_also = f"*see also [{_see_also}]({see_also_link})*" if _see_also else ""
 
                 info = join_c(_info) if (_info:=senses["info"]) else ""
