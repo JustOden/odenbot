@@ -1,13 +1,10 @@
 import os
-import discord
-from discord import app_commands
-from discord.ext import commands
 import asyncio
+import discord
+from discord.ext import commands
 from dotenv import load_dotenv
-from keep_alive import keep_alive
 
 load_dotenv()
-
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=("o!", "O!"), intents=intents)
 
@@ -43,5 +40,5 @@ async def main():
         TOKEN = os.getenv("DISCORD_TOKEN")
         await bot.start(TOKEN)
 
-# keep_alive()
+
 asyncio.run(main())
