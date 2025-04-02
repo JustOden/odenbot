@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=("o!", "O!"), intents=intents)
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("o!"), intents=intents)
 
 
 @bot.event
